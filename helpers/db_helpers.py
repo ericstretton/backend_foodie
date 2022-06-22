@@ -71,7 +71,7 @@ def run_query(statement, args=None):
     
     except mariadb.ProgrammingError as e:
         if("SQL syntax" in e.msg):
-            print("Apparently you cannot program")
+            print("SQL syntax error, check formating")
         else:
             print("Got a different programming error")
         print(e.msg)

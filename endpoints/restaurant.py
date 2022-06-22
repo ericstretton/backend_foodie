@@ -6,7 +6,20 @@ from uuid import uuid4
 @app.get('/api/restaurant')
 def restaurant_get():
                 # TODO: get request applicable to all users
-    return
+    restaurant_info = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city')
+    resp = []
+    for info in restaurant_info:
+        obj = {}
+        obj['id'] = info[0]
+        obj['address'] = info[1]
+        obj['banner_url'] = info[2]
+        obj['bio'] = info[3]
+        obj['city'] = info[4]
+        obj['email'] = info[5]
+        obj['phoneNum'] = info[6]
+        obj['profile_url'] = info[7]
+        resp.append(obj)
+    return jsonify('Restaurant request successful', resp), 201
     
 @app.post('/api/restaurant')
 def restaurant_post():
@@ -52,6 +65,8 @@ def restaurant_post():
     run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [token, restaurantId])
      
     return jsonify('Restaurant created', 'restaurant_id: ', restaurantId), 201
+
+
 @app.patch('/api/restaurant')
 def restaurant_patch():
             # TODO: get token from restaurant_session table for authentication for restaurant 

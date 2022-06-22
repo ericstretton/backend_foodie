@@ -1,29 +1,24 @@
+
 from app import app
 from flask import jsonify, request
+from helpers.dataFunctions import client_dictionary_query, check_email
 from helpers.db_helpers import run_query
 import bcrypt
 from uuid import uuid4
 
 
+
 @app.get('/api/client')
 def client_get():
     #TODO: Get Token as a variable 
-    
-    token = str("086741bd-3ccc-4dc4-b79a-cbda9dc077bb")
+    data = request.data
+    token = data.get('token')
     user_info = run_query('SELECT client_session.client_id, client.email, client.username, client.created_at, client.firstName, client.lastName, client.picture_url  FROM client INNER JOIN client_session ON client.id=client_session.client_id WHERE client_session.token=?', [token])
-    resp = []
-    for info in user_info:
-        obj = {}
-        obj['id'] = info[0]
-        obj['username'] = info[2]
-        obj['email'] = info[1]
-        obj['lastName'] = info[4]
-        obj['created_at'] = info[3]
-        obj['lastName'] = info[5]
-        obj['picture_url'] = info[6]
-        resp.append(obj)
+    resp = client_dictionary_query(user_info)
+    resp_list = []
+    resp_list.append(resp)
     
-    return jsonify('Client get request successful', resp), 201
+    return jsonify('Client get request successful', resp_list), 201
     
 @app.post('/api/client')
 def client_post():
@@ -65,9 +60,34 @@ def client_patch():
                     # TODO: get token from client_session table for authentication
     data = request.json
     token = data.get('token')
+    if token != None:
+        token_valid = run_query('SELECT EXISTS(SELECT token FROM client_session WHERE token=?)', [token])
+        if token_valid == 1:
+            update_client =  client_dictionary_query(data)
+            if "email" in update_client:
+                if not check_email(update_client['email']):
+                    return jsonify("Error, Not a valid email"), 400
+                email_exists = run_query('SELECT EXISTS(SELECT email FROM client WHERE email=?)', [update_client['email']])
+                if email_exists == 1:
+                    return jsonify('Email already exists'), 400
+                
     return
     
 @app.delete('/api/client')
 def client_delete():
                         # TODO: get token from client_session table for authentication
+    data = request.json
+    token = data.get('token')
+    password = data.get('password')
+    
+    if token != None:
+        token_valid = run_query('SELECT EXISTS(SELECT token FROM cllient_session WHERE token=?', [token])
+        if token_valid ==1:
+            comparison =  run_query('SELECT client_session.token, client.password, client.id FROM client INNER JOIN client_session ON client.id=client_session.client_id WHERE client_session.token=?', [token])
+            if password == comparison[1]:
+                run_query('DELETE FROM client WHERE id=?', [comparison[2]])
+                return jsonify('Delete Processed'), 204
+            else:
+                return jsonify('Required Credentials do not match, delete not processed'), 400
+        
     return

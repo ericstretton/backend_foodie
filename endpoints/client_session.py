@@ -39,5 +39,9 @@ def client_login_post():
 def client_login_delete():
     data = request.json
     token = data.get('token')
-    return
+    if token == True:
+        run_query('DELETE * FROM client_session WHERE token=?', [token])
+    else:
+        return jsonify("Error, conditions to log-out are not met, check token")
+    return jsonify('Log-out Successful')
     
