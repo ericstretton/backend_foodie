@@ -1,25 +1,43 @@
+
 from app import app
-from flask import jsonify, request
+from flask import jsonify, request, Response
 from helpers.db_helpers import run_query
 from uuid import uuid4
+from helpers.data_functions import *
 
 @app.get('/api/restaurant')
 def restaurant_get():
                 # TODO: get request applicable to all users
-    restaurant_info = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city')
-    resp = []
-    for info in restaurant_info:
-        obj = {}
-        obj['id'] = info[0]
-        obj['address'] = info[1]
-        obj['banner_url'] = info[2]
-        obj['bio'] = info[3]
-        obj['city'] = info[4]
-        obj['email'] = info[5]
-        obj['phoneNum'] = info[6]
-        obj['profile_url'] = info[7]
-        resp.append(obj)
-    return jsonify('Restaurant request successful', resp), 201
+    params = request.args
+    rest_id = params.get('id')
+    
+    
+    if len(params.keys()) == 0:
+        all_restaurants = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city')
+        all_restaurants_list = []
+        for rest in all_restaurants:
+            restaurant = restaurant_dictionary_query(rest)
+            all_restaurants_list.append(restaurant)
+        return jsonify('get_all request success', all_restaurants_list)
+    
+    elif len(params.keys()) >= 1:
+        if rest_id.isdigit() <= False:
+            return Response('Error, invalid rest_id', status=400)
+        check_id_validity = run_query('SELECT EXISTS(SELECT id FROM restaurant WHERE id=?)', [rest_id])
+        response = check_id_validity[0]
+        
+        if response[0] == 1:
+            
+            restaurant_info = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city WHERE restaurant.id=?', [rest_id])
+            resp = restaurant_dictionary_query(restaurant_info[0])
+            resp_list = []
+            resp_list.append(resp)
+            
+            return jsonify('Restaurant request successful', resp_list), 201
+        else:
+            return jsonify('Error, invalid rest_id'), 400
+    else:
+        return jsonify('Error paramaters exceeded limit, 0 / 1')
     
 @app.post('/api/restaurant')
 def restaurant_post():
@@ -70,4 +88,17 @@ def restaurant_post():
 @app.patch('/api/restaurant')
 def restaurant_patch():
             # TODO: get token from restaurant_session table for authentication for restaurant 
-    return
+    params = request.args
+    rest_token = params.get('rest_token')
+    rest_id = params.get('rest_id')
+    id = run_query('SELECT EXISTS(SELECT id FROM restaurant WHERE id=?', [rest_id])
+    if rest_id != id:
+        return Response('ERROR, Restaurant Id not in database', status=400)
+    else:
+        token = run_query('SELECT EXISTS(SELECT token FROM restaurant_session WHERE token=?)', [rest_token])
+        if token != rest_token:
+            return Response('ERROR, Token not found in database')
+        else:
+            update_restaurant_info = run_query('PATCH address, email, phoneNum, bio, profile_url, banner_url FROM restaurant WHERE id=?', [rest_id])
+            updated_info = restaurant_dictionary_query(update_restaurant_info)
+            

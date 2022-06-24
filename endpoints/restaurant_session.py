@@ -1,18 +1,18 @@
 from app import app
-from flask import jsonify, request
+from flask import jsonify, request, Response
 from helpers.db_helpers import run_query
 from uuid import uuid4
 
 
 @app.post('/api/restaurant_session')
 def restaurant_login_post():
-    # Gather Required information =>
-        # TODO - deal with encrypted password
+    
     data = request.json
     email = data.get('email')
     password = data.get('password')
     if not email:
         return jsonify('Missing required argument: email'), 422
+    
     if not password:
         return jsonify('Missing required argument: password'), 422
     
@@ -34,4 +34,7 @@ def restaurant_login_post():
     
 @app.delete('/api/restaurant_session')
 def restaurant_login_delete():
-    return
+    params = request.args
+    rest_token = params.get('rest_token')
+    rest_id = params.get('rest_id')
+    

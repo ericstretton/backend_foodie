@@ -86,3 +86,6 @@ def run_query(statement, args=None):
         print(e.msg)
     finally:
         disconnect_db(conn,cursor)
+        
+
+
