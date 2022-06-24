@@ -1,8 +1,9 @@
+import email
 import json
 from app import app
 from flask import jsonify, request, Response
 from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email
-from helpers.db_helpers import run_query
+from helpers.db_helpers import new_dictionary_request, run_query
 import bcrypt
 from uuid import uuid4
 
@@ -28,42 +29,99 @@ def client_get():
     else:
         return Response('Error token does not exist', status=400)
     
-    
-    
 @app.post('/api/client')
 def client_post():
                         # TODO STRETTON, update pw protection w salt, hash
     data = request.json
-    email = data.get('email')
-    username = data.get('username')
-    password = data.get(str('password'))
     
+    if len(data.keys()) >= 4 and len(data.keys()) <= 6:
+        if {'email', 'username', 'password', 'firstName'} or \
+            {'email', 'username', 'password', 'firstName', 'lastName'} or \
+                {'email', 'username', 'password', 'firstName', 'picture_url'} or \
+                    {'email', 'username', 'password', 'firstName', 'lastName', 'picture_url'}:
+            new_client = new_dictionary_request(data)
+        else:
+            return jsonify('Incorrect keys submitted'), 400
+    else:
+        return jsonify('Error, invalid amount of data submitted')
     
+    if not check_email(new_client['email']):
+        return jsonify("Error invalid email address submitted"), 400
+    if not check_length(new_client['email'], 5, 75):
+        return jsonify('ERROR, email must be between 5 and 75 characters'), 400
+    
+    check_email_validity = run_query('SELECT email FROM client WHERE email=?', [new_client['email']])
+    
+    if check_email_validity == []:
+        if not check_length(new_client['username'], 1, 50):
+            return jsonify('ERROR, username must be between 1 and 50 characters'), 400
+        check_username_validity = run_query('SELECT username FROM client WHERE username=?', [new_client['username']])
+        
+        if check_username_validity == []:
+            
+            if not check_length(new_client['password'], 6, 100):
+                return jsonify('ERROR, password must be between 1 and 200 characters'), 400
+            password = str(new_client['password'])
+            salt = bcrypt.gensalt()
+            hashed_password = bcrypt.hashpw(password.encode(), salt)
+
+            if not new_client['firstName']:
+                return jsonify('Missing required argument: firstName'), 422
+            else:
+                run_query("INSERT INTO client (email, username, password, firstName, lastName, picture_url) VALUE(?,?,?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName'], new_client['lastName'], new_client['picture_url']])
+        else:
+            username_validity = check_username_validity[0]
+            if username_validity[0] == new_client['username']:
+                return jsonify('ERROR, username already exists'), 400
+    else:
+        email_validity = check_email_validity[0]
+
+        if email_validity[0] == new_client['email']:
+            return jsonify('ERROR, email already exists'), 400
+    
+    client_id = run_query('SELECT id FROM client WHERE email=?', [new_client['email']])
+    response = client_id[0]
+    check_response = response[0]
+    
+    token = str(uuid4())
+        # TODO, add checks on lastName and picture_url
+    run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
+    
+    client = run_query('SELECT id, email, username, firstName, lastName, picture_url, created_at FROM client WHERE id=?', [check_response])
+    client_response = client[0]
+    
+    resp = client_dictionary_query(client_response)
+    resp['token'] = token
+    
+    return jsonify('Client Created,', resp), 201
+    
+    if not check_length(new_client['password'], 6, 100):
+        return jsonify('ERROR, password must be between 1 and 200 characters'), 400
+    password = str(new_client['password'])
     salt = bcrypt.gensalt()
-    password = bcrypt.hashpw(password.encode(), salt)
+    hashed_password = bcrypt.hashpw(password.encode(), salt)
     firstName = data.get('firstName')
-    lastName = data.get('lastName')
-    picture_url = data.get('picture_url')
-    if not email:
-        return jsonify('Missing required argument: email'), 422
-    if not username:
-        return jsonify('Missing required argument: username'), 422
-    if not password:
-        return jsonify('Missing required argument: password'), 422
+    
     if not firstName:
         return jsonify('Missing required argument: firstName'), 422
+    else:
+        run_query("INSERT INTO client (email, username, password, firstName, lastName, picture_url) VALUE(?,?,?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName'], new_client['lastName'], new_client['picture_url']])
     
-    run_query("INSERT INTO client (email, username, password, firstName, lastName, picture_url) VALUE(?,?,?,?,?,?)", [email, username, password, firstName, lastName, picture_url])
+    client_id = run_query('SELECT id FROM client WHERE email=?', [new_client['email']])
+    response = client_id[0]
+    check_response = response[0]
+    
     token = str(uuid4())
-    resp = []
-    client_info = run_query('SELECT id FROM client WHERE username=? and password=?', [username, password])
-    for info in client_info:
-        clientId = {}
-        clientId = info[0]
-        resp.append(clientId)
-    run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, clientId])
+        # TODO, add checks on lastName and picture_url
+    run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
     
-    return jsonify('Client created', 'client_id: ', clientId, 'token: ', token), 201
+    client = run_query('SELECT id, email, username, firstName, lastName, picture_url, created_at FROM client WHERE id=?', [check_response])
+    client_response = client[0]
+    
+    resp = client_dictionary_query(client_response)
+    resp['token'] = token
+    
+    return jsonify('Client Created,', resp), 201
     
 @app.patch('/api/client')
 def client_patch():
@@ -71,9 +129,11 @@ def client_patch():
     data = request.json
     token = data.get('token')
     if token != None:
-        # token_valid = run_query('SELECT EXISTS(SELECT token FROM client_session WHERE token=?)', [token])
-        # token_valid_response = token_valid[0]
-        # if str(token_valid_response[0]) == 1:
+        token_valid = run_query('SELECT token FROM client_session WHERE token=?', [token])
+        token_valid_response = token_valid[0]
+        response = str(token_valid_response[0])
+        
+        if response == token:
             # allowed_keys= {"email", "username", "token", "firstName", "lastName", "picture_url"}
             # allowed_data_keys(data, allowed_keys)
             update_client =  client_dictionary_query(data)
@@ -83,8 +143,8 @@ def client_patch():
                 if not check_email(update_client['email']):
                     return jsonify("Error, Not a valid email"), 400
                 
-                email_exists = run_query('SELECT EXISTS(SELECT email FROM client WHERE email=?)', [update_client['email']])
-                if email_exists == 1:
+                email_exists = run_query('SELECT email FROM client WHERE email=?', [update_client['email']])
+                if email_exists == True:
                     return jsonify('Email already exists'), 400
                 run_query('UPDATE client INNER JOIN client_session ON client.id=client_session.client_id SET client.email=? WHERE client_session.token=?', [update_client['email'], token])
                 
@@ -115,9 +175,9 @@ def client_patch():
             # GET THE UPDATED client information
             client_updated = run_query('SELECT c.id, email, username, fistName, lastName, picture_url, created_at FROM client c INNER JOIN client_session s ON c.id=s.client_id WHERE client_session.token=?', [token])
             resp = client_dictionary_query(client_updated)
-            return Response(json.dumps(resp, mimetype="application/json", status=200))
-        # else:
-        #     return Response('Invalid session token', status=400)
+            return jsonify(resp)
+        else:
+            return Response('Invalid session token', status=400)
     else:
         return Response('A valid session token is needed')
     

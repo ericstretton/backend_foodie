@@ -89,3 +89,8 @@ def run_query(statement, args=None):
         
 
 
+def new_dictionary_request(data):
+    new_dict = {}
+    for k,v in data.items():
+        new_dict[k] = str(v).strip()
+    return new_dict
