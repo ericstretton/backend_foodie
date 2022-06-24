@@ -2,8 +2,8 @@ import email
 import json
 from app import app
 from flask import jsonify, request, Response
-from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email
-from helpers.db_helpers import new_dictionary_request, run_query
+from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email, new_dictionary_request
+from helpers.db_helpers import run_query
 import bcrypt
 from uuid import uuid4
 
@@ -60,7 +60,7 @@ def client_post():
         if check_username_validity == []:
             
             if not check_length(new_client['password'], 6, 100):
-                return jsonify('ERROR, password must be between 1 and 200 characters'), 400
+                return jsonify('ERROR, password must be between 6 and 200 characters'), 400
             password = str(new_client['password'])
             salt = bcrypt.gensalt()
             hashed_password = bcrypt.hashpw(password.encode(), salt)
@@ -95,33 +95,7 @@ def client_post():
     
     return jsonify('Client Created,', resp), 201
     
-    if not check_length(new_client['password'], 6, 100):
-        return jsonify('ERROR, password must be between 1 and 200 characters'), 400
-    password = str(new_client['password'])
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-    firstName = data.get('firstName')
     
-    if not firstName:
-        return jsonify('Missing required argument: firstName'), 422
-    else:
-        run_query("INSERT INTO client (email, username, password, firstName, lastName, picture_url) VALUE(?,?,?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName'], new_client['lastName'], new_client['picture_url']])
-    
-    client_id = run_query('SELECT id FROM client WHERE email=?', [new_client['email']])
-    response = client_id[0]
-    check_response = response[0]
-    
-    token = str(uuid4())
-        # TODO, add checks on lastName and picture_url
-    run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
-    
-    client = run_query('SELECT id, email, username, firstName, lastName, picture_url, created_at FROM client WHERE id=?', [check_response])
-    client_response = client[0]
-    
-    resp = client_dictionary_query(client_response)
-    resp['token'] = token
-    
-    return jsonify('Client Created,', resp), 201
     
 @app.patch('/api/client')
 def client_patch():

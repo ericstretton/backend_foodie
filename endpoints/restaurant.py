@@ -1,4 +1,4 @@
-
+import bcrypt
 from app import app
 from flask import jsonify, request, Response
 from helpers.db_helpers import run_query
@@ -33,7 +33,7 @@ def restaurant_get():
             resp_list = []
             resp_list.append(resp)
             
-            return jsonify('Restaurant request successful', resp_list), 201
+            return jsonify(resp_list[0]), 201
         else:
             return jsonify('Error, invalid rest_id'), 400
     else:
@@ -45,44 +45,91 @@ def restaurant_post():
                     
                     # TODO: make a join for city or look up if city exists, if not return response that it is not in the table
     data = request.json
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-    address = data.get('address')
-    phoneNum = data.get('phoneNum')
-    bio = data.get('phoneNum')
-    profile_url = data.get('profile_url')
-    banner_url = data.get('banner_url')
-    city = data.get('city')
-    if not name:
-        return jsonify('Missing required argument: name'), 422
-    if not email: 
+    if len(data.keys()) >= 6 and len(data.keys()) <= 9 :
+        if {'email', 'password', 'name', 'address', 'phoneNum', 'city'} or \
+            {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'bio'} or \
+                {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'bio', 'profile_url'} or \
+                    {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'bio', 'profile_url', 'banner_url'} or \
+                        {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'bio', 'banner_url'} or \
+                            {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'profile_url', 'banner_url'} or \
+                                {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'profile_url'} or \
+                                    {'email', 'password', 'name', 'address', 'phoneNum', 'city', 'banner_url'}:
+                                        new_restaurant = new_dictionary_request(data)
+        else:
+            return jsonify('Incorrect keys submitted'), 400
+    else:
+        return jsonify('Error, invalid amount of data submitted')
+    
+    if not new_restaurant['email']:
         return jsonify('Missing required argument: email'), 422
-    if not address:
-        return jsonify('Missing required argument: address'), 422
-    if not phoneNum:
-        return jsonify('Missing required argument: phoneNum'), 422
-    if not password:
-        return jsonify('Missing required argument: password'), 422
-    if not city:
-        return jsonify('Missing required argument: city'), 422
-    elif city == True:
-        city_check = run_query('SELECT city.name FROM city INNER JOIN restaurant WHERE restaurant.city=city.id')
-        print(city_check)
-        if city != city_check:
-            return jsonify('Errror valid city has not been selected.'), 422
+    elif not check_email(new_restaurant['email']):
+        return jsonify("Error invalid email address submitted"), 400
+    elif not check_length(new_restaurant['email'], 5, 75):
+        return jsonify('ERROR, email must be between 5 and 75 characters'), 400
+    
+    check_email_validity = run_query('SELECT email FROM restaurant WHERE email=?', [new_restaurant['email']])
+    
+    if check_email_validity == []:
         
-    run_query("INSERT INTO restaurant (email, name, password, phoneNum, address, city, bio, profile_url, banner_url) VALUE(?,?,?,?,?,?,?,?,?)", [email, name, password, phoneNum, address, city, bio, profile_url, banner_url ])
+        if not new_restaurant['name']:
+            return jsonify('Missing required argument: name'), 422
+        elif not check_length(new_restaurant['name'], 1, 75):
+            return jsonify('ERROR, restaurant name must be between 1 and 75 characters'), 400
+        
+        if not new_restaurant['address']:
+            return jsonify('Missing required argument: address'), 422
+        elif not check_length(new_restaurant['address'], 6, 75):
+            return jsonify('ERROR, address must be between 1 and 75 characters'), 400
+        
+        if not new_restaurant['phoneNum']:
+            return jsonify('Missing required argument: phoneNum'), 422
+        elif not check_length(new_restaurant['phoneNum'], 10, 25):
+            return jsonify('ERROR, phone number must be between 10 and 25 characters'), 400
+        
+        if not new_restaurant['city']:
+            return jsonify('Missing required argument: city'), 422
+        elif new_restaurant['city'] == True:
+            city_check = run_query('SELECT city.name FROM city INNER JOIN restaurant WHERE restaurant.city=city.id')
+            print(city_check)
+            if new_restaurant['city'] != city_check:
+                return jsonify('Errror valid city has not been selected.'), 422
+            
+        if not new_restaurant['password']:
+            return jsonify('Missing required argument: password'), 422
+        elif not check_length(new_restaurant['password'], 6, 100):
+                return jsonify('ERROR, password must be between 6 and 200 characters'), 400
+        password = str(new_restaurant['password'])
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password.encode(), salt)
+        
+        
+        if not check_length(new_restaurant['bio'], 1, 200):
+            return jsonify('ERROR, bio must be between 1 and 200 characters'), 400
+        if  new_restaurant['profile_url'] == False:
+            pass
+        elif not check_length(new_restaurant['profile_url'], 8, 300):
+            return jsonify('ERROR, profile_url must be between 8 and 300 characters'), 400
+
+        if not check_length(new_restaurant['banner_url'], 8, 300):
+            return jsonify('ERROR, banner_url must be between 8 and 300 characters'), 400
+        
+        else:run_query("INSERT INTO restaurant (email, name, password, phoneNum, address, city, bio, profile_url, banner_url) VALUE(?,?,?,?,?,?,?,?,?)", [new_restaurant['email'], new_restaurant['name'], hashed_password, new_restaurant['phoneNum'], new_restaurant['address'], new_restaurant['city'], new_restaurant['bio'], new_restaurant['profile_url'], new_restaurant['banner_url'] ])
+        
+    else:
+        email_validity = check_email_validity[0]
+        if email_validity[0] == new_restaurant['email']:
+            return jsonify('ERROR, email already exists'), 400
+        
+    restaurant_id = run_query('SELECT id FROM restaurant WHERE email=?', [new_restaurant['email']])
+    
+    response = restaurant_id[0]
+    
+    check_response = response[0]
+    
     token = str(uuid4())
-    resp = []
-    restaurant_info = run_query('SELECT id FROM restaurant WHERE email=? and password=?', [email, password])
-    for info in restaurant_info:
-        restaurantId = {}
-        restaurantId = info[0]
-        resp.append(restaurantId)
-    run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [token, restaurantId])
-     
-    return jsonify('Restaurant created', 'restaurant_id: ', restaurantId), 201
+    run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [token, check_response])
+    
+    return jsonify( 'restaurant_id: ', check_response, 'token: ', token), 201
 
 
 @app.patch('/api/restaurant')

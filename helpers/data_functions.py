@@ -53,3 +53,8 @@ def allowed_data_keys(data, allowed_keys):
             del data[key]
     return data
 
+def new_dictionary_request(data):
+    new_dict = {}
+    for k,v in data.items():
+        new_dict[k] = str(v).strip()
+    return new_dict
