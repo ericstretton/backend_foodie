@@ -7,10 +7,10 @@ from helpers.data_functions import *
 
 @app.get('/api/restaurant')
 def restaurant_get():
-                # TODO: get request applicable to all users
+    # TODO: Refine error handling
+    
     params = request.args
     rest_id = params.get('id')
-    
     
     if len(params.keys()) == 0:
         all_restaurants = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city')
@@ -41,9 +41,10 @@ def restaurant_get():
     
 @app.post('/api/restaurant')
 def restaurant_post():
-                    # TODO STRETTON, update pw protection w salt, hash
-                    
-                    # TODO: make a join for city or look up if city exists, if not return response that it is not in the table
+        # TODO: allow for no profile_url, banner_url and or bio  --> possibly splitting to having multiple final inserts?
+        # TODO: error handling
+
+
     data = request.json
     if len(data.keys()) >= 6 and len(data.keys()) <= 9 :
         if {'email', 'password', 'name', 'address', 'phoneNum', 'city'} or \
@@ -102,7 +103,7 @@ def restaurant_post():
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password.encode(), salt)
         
-        # TODO : Need to make acceptions for handling no profile_url, banner_url, and bio
+        # TODO : Need to make exceptions for handling no profile_url, banner_url, and bio
         
         
         if not check_length(new_restaurant['bio'], 1, 200):
@@ -136,7 +137,10 @@ def restaurant_post():
 
 @app.patch('/api/restaurant')
 def restaurant_patch():
-            # TODO: get token from restaurant_session table for authentication for restaurant 
+            
+            # TODO: allow for only select updates to the information AND check for accepted keys
+            # TODO: error handling
+            
     data = request.json
     token = data.get('token')
     

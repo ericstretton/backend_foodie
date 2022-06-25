@@ -1,15 +1,22 @@
 import json
 from app import app
 from flask import jsonify, request
-from helpers.data_functions import check_length, new_dictionary_request
+from helpers.data_functions import check_length, menu_item_dictionary, new_dictionary_request
 from helpers.db_helpers import run_query
 
 @app.get('/api/menu_item')
 def menu_item_get():
+                # OPTIONAL arguments are restaurant_id and menuId
+    
     params = request.args
     
-    return
-    
+    if len(params.keys()) == 0:
+        all_items = run_query('SELECT * FROM menu_item')
+        all_menu_items = []
+        for item in all_items:
+            menu_item = menu_item_dictionary(item)
+            all_menu_items.append(menu_item)
+        return jsonify(all_menu_items)
 @app.post('/api/menu_item')
 def menu_item_post():
     
@@ -48,6 +55,10 @@ def menu_item_post():
                 "price" : item[4]
             }
             return jsonify("Item Created: ", resp)
+        else:
+            return jsonify('ERROR token submitted is invalid', token), 422
+    else:
+        return jsonify('ERROR, valid log in token is required to create menu items')
 @app.patch('/api/menu_item')
 def menu_item_patch():
     return

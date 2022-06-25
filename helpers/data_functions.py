@@ -39,11 +39,17 @@ def restaurant_dictionary_query(data):
 
 # TODO add functions for menu items, orders and log in authorization
 
+
 def menu_item_dictionary(data):
     menu_item = {
         "id" : data[0],
-        
+        "name" : data[1],
+        "description" : data[2],
+        "price" : data[3],
+        "image_url" : data[4],
+        "restaurant_id" : data[5]
     }
+    return menu_item
 
 def check_email(email):
     regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$' 

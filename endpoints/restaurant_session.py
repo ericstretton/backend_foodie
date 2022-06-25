@@ -28,7 +28,7 @@ def restaurant_login_post():
         return jsonify('Log-in Error, restaurant Id not present', restaurantId), 422
     else:
         token = str(uuid4())
-        #TODO: change to insert
+        
         run_query('INSERT INTO restaurant_session (restaurant_id, token) VALUES (?,?)', [restaurantId, token])
         if True:
             return jsonify('Log-in Successful', 'restaurantId: ', restaurantId, 'token: ', token), 201 

@@ -10,6 +10,7 @@ from uuid import uuid4
 @app.get('/api/client')
 def client_get():
     # Only applicable to single user id with an equivalent accessible token
+    
     params = request.args
     token = params.get('token')
     if not token:
@@ -27,7 +28,8 @@ def client_get():
     
 @app.post('/api/client')
 def client_post():
-                        # TODO STRETTON, update pw protection w salt, hash
+                        # TODO create optional checks for picture_url and lastName
+                        
     data = request.json
     
     if len(data.keys()) >= 4 and len(data.keys()) <= 6:
@@ -51,6 +53,8 @@ def client_post():
     if check_email_validity == []:
         if not check_length(new_client['username'], 1, 50):
             return jsonify('ERROR, username must be between 1 and 50 characters'), 400
+        
+        #TODO Check for edge case involving check_username_validity 
         check_username_validity = run_query('SELECT username FROM client WHERE username=?', [new_client['username']])
         
         if check_username_validity == []:
@@ -80,7 +84,7 @@ def client_post():
     check_response = response[0]
     
     token = str(uuid4())
-        # TODO, add checks on lastName and picture_url
+        
     run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
     
     client = run_query('SELECT id, email, username, firstName, lastName, picture_url, created_at FROM client WHERE id=?', [check_response])
@@ -95,7 +99,10 @@ def client_post():
     
 @app.patch('/api/client')
 def client_patch():
-                    # TODO: get token from client_session table for authentication
+    
+                    # TODO: check accepted key values and optional key values
+                    # TODO: error handling
+                    
     data = request.json
     token = data.get('token')
     
@@ -161,9 +168,10 @@ def client_patch():
     
 @app.delete('/api/client')
 def client_delete():
-                        # TODO: get token from client_session table for authentication
+                    
+                    # TODO: Refine error handling
+                    
     data = request.json
-    
     
     if len(data.keys()) == 2:
         if {"token", "password"} <= data.keys():

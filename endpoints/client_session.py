@@ -11,8 +11,8 @@ from uuid import uuid4
 @app.post('/api/client_session')
 def client_login_post():
     
-    # Gather Required information =>
-        # TODO - deal with encrypted password
+    # TODO: update and adjust structure 
+    # TODO: error handling
     data = request.json
     email = data.get('email')
     password = data.get('password')
@@ -47,6 +47,9 @@ def client_login_post():
     
 @app.delete('/api/client_session')
 def client_login_delete():
+    # TODO: update and adjust structure 
+    # TODO: error handling
+    
     data = request.json
     token = data.get('token')
     check_token = run_query('SELECT token from client_session WHERE token =?', [token])
