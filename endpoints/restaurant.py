@@ -102,6 +102,8 @@ def restaurant_post():
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password.encode(), salt)
         
+        # TODO : Need to make acceptions for handling no profile_url, banner_url, and bio
+        
         
         if not check_length(new_restaurant['bio'], 1, 200):
             return jsonify('ERROR, bio must be between 1 and 200 characters'), 400
@@ -135,17 +137,34 @@ def restaurant_post():
 @app.patch('/api/restaurant')
 def restaurant_patch():
             # TODO: get token from restaurant_session table for authentication for restaurant 
-    params = request.args
-    rest_token = params.get('rest_token')
-    rest_id = params.get('rest_id')
-    id = run_query('SELECT EXISTS(SELECT id FROM restaurant WHERE id=?', [rest_id])
-    if rest_id != id:
-        return Response('ERROR, Restaurant Id not in database', status=400)
-    else:
-        token = run_query('SELECT EXISTS(SELECT token FROM restaurant_session WHERE token=?)', [rest_token])
-        if token != rest_token:
-            return Response('ERROR, Token not found in database')
-        else:
-            update_restaurant_info = run_query('PATCH address, email, phoneNum, bio, profile_url, banner_url FROM restaurant WHERE id=?', [rest_id])
-            updated_info = restaurant_dictionary_query(update_restaurant_info)
+    data = request.json
+    token = data.get('token')
+    
+    if token != None:
+        token_valid = run_query('SELECT token FROM restaurant_session WHERE token=?', [token])
+        token_valid_response = token_valid[0]
+        response = token_valid_response[0]
+        
+
+        if response == token:
+            update_restaurant = new_dictionary_request(data)
+            
+            if 'email' in update_restaurant:
+                if not check_length(update_restaurant['email'], 1, 75):
+                    return jsonify('Invalid length, email must be between 1 and 75 characters')
+                if not check_email(update_restaurant['email']):
+                    return jsonify("Error, Not a valid email"), 400
+                
+                email_exists = run_query('SELECT email FROM restaurant WHERE email=?', [update_restaurant['email']])
+                if email_exists != []:
+                    return jsonify('Email already exists'), 400
+                run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.email=? WHERE restaurant_session.token=?', [update_restaurant['email'], response])
+                return jsonify(email_exists)
+    # else:
+    #     token = run_query('SELECT token FROM restaurant_session WHERE token=?)', [token])
+    #     if token != rest_token:
+    #         return Response('ERROR, Token not found in database')
+    #     else:
+    #         update_restaurant_info = run_query('PATCH address, email, phoneNum, bio, profile_url, banner_url FROM restaurant WHERE id=?', [rest_id])
+    #         updated_info = restaurant_dictionary_query(update_restaurant_info)
             

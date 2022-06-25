@@ -1,14 +1,10 @@
-import email
-import json
+
 from app import app
 from flask import jsonify, request, Response
-from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email, new_dictionary_request
+from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email, new_dictionary_request, update_client_dictionary
 from helpers.db_helpers import run_query
 import bcrypt
 from uuid import uuid4
-
-
-
 
 
 @app.get('/api/client')
@@ -102,15 +98,20 @@ def client_patch():
                     # TODO: get token from client_session table for authentication
     data = request.json
     token = data.get('token')
+    
     if token != None:
         token_valid = run_query('SELECT token FROM client_session WHERE token=?', [token])
         token_valid_response = token_valid[0]
-        response = str(token_valid_response[0])
+        response = token_valid_response[0]
+        
         
         if response == token:
-            # allowed_keys= {"email", "username", "token", "firstName", "lastName", "picture_url"}
-            # allowed_data_keys(data, allowed_keys)
-            update_client =  client_dictionary_query(data)
+            allowed_keys= {"token", "email", "username", "firstName", "lastName", "picture_url"}
+            
+            allowed_data_keys(data, allowed_keys)
+            
+            update_client =  new_dictionary_request(data)
+            
             if 'email' in update_client:
                 if not check_length(update_client['email'], 1, 75):
                     return jsonify('Invalid length, email must be between 1 and 75 characters')
@@ -118,7 +119,7 @@ def client_patch():
                     return jsonify("Error, Not a valid email"), 400
                 
                 email_exists = run_query('SELECT email FROM client WHERE email=?', [update_client['email']])
-                if email_exists == True:
+                if email_exists != []:
                     return jsonify('Email already exists'), 400
                 run_query('UPDATE client INNER JOIN client_session ON client.id=client_session.client_id SET client.email=? WHERE client_session.token=?', [update_client['email'], token])
                 
@@ -147,8 +148,10 @@ def client_patch():
                 run_query('UPDATE client INNER JOIN client_session ON client.id=client_session.client_id SET client.picture_url=? WHERE client_session.token=?', [update_client['picture_url'], token])
             
             # GET THE UPDATED client information
-            client_updated = run_query('SELECT c.id, email, username, fistName, lastName, picture_url, created_at FROM client c INNER JOIN client_session s ON c.id=s.client_id WHERE client_session.token=?', [token])
-            resp = client_dictionary_query(client_updated)
+            client_updated = run_query('SELECT c.id, email, username, fistName, lastName, picture_url, created_at FROM client AS c INNER JOIN client_session AS s ON c.id=s.client_id WHERE client_session.token=?', [token])
+            
+            resp = update_client_dictionary(client_updated)
+            
             return jsonify(resp)
         else:
             return Response('Invalid session token', status=400)
@@ -160,22 +163,33 @@ def client_patch():
 def client_delete():
                         # TODO: get token from client_session table for authentication
     data = request.json
-    token = data.get('token')
-    password = data.get('password')
     
-    if token != None:
-        token_valid = run_query('SELECT EXISTS(SELECT token FROM client_session WHERE token=?)', [token])
-        if token_valid ==1:
-            
-            comparison = run_query('SELECT client_session.token, client.password, client.id FROM client INNER JOIN client_session ON client.id=client_session.client_id WHERE client_session.token=?', [token])
-            
-            if password == comparison[1]:
-                run_query('DELETE * FROM client WHERE id=?', [comparison[2]])
-                return jsonify('Delete Processed'), 204
+    
+    if len(data.keys()) == 2:
+        if {"token", "password"} <= data.keys():
+            token = data.get('token')
+            password = data.get('password')
+        
+            if token != None:
+                token_valid = run_query('SELECT token FROM client_session WHERE token=?', [token])
+                response = token_valid[0]
+                if response[0] == token:
+                    
+                    comparison = run_query('SELECT client_session.token, client.password, client.id FROM client INNER JOIN client_session ON client.id=client_session.client_id WHERE client_session.token=?', [token])
+                    comp_response = comparison[0]
+                    
+                    if password == comp_response[1]:
+                        run_query('DELETE FROM client_session WHERE token=?', [comp_response[0]])
+                        
+                        run_query('DELETE FROM client WHERE id=?', [comp_response[2]])
+                        return jsonify('Delete Processed' ), 204
+                    else:
+                        return jsonify('Required Credentials do not match, delete not processed'), 400
+                else:
+                    return jsonify("Invalid Token was passed", token)
             else:
-                return jsonify('Required Credentials do not match, delete not processed'), 400
+                return jsonify('Error, no token present')
         else:
-            return jsonify("Invalid Token was passed", token)
+            return jsonify('ERROR, Invalid JSON data, check required keys'), 400
     else:
-        return jsonify('Error, no token present')
-    
+        return jsonify('ERROR, invalid amount of keys, check required keys'), 400

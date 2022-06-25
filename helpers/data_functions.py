@@ -12,6 +12,17 @@ def client_dictionary_query(data):
     }
     return client
 
+def update_client_dictionary(data):
+    client = {
+        
+        "email" : data[1],
+        "username" : data[2],
+        "firstName" : data[3],
+        "lastName" : data[4],
+        "picture_url" : data[5]
+    }
+    return client
+
 def restaurant_dictionary_query(data):
     restaurant = {
         "restaurant_id" : data[0],
@@ -48,6 +59,7 @@ def check_length(input, min_len, max_len):
         return False
     
 def allowed_data_keys(data, allowed_keys):
+    
     for key in list(data.keys()):
         if key not in allowed_data_keys:
             del data[key]

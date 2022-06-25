@@ -1,3 +1,4 @@
+import json
 from app import app
 from flask import jsonify, request, Response
 from helpers.db_helpers import run_query
@@ -34,7 +35,13 @@ def restaurant_login_post():
     
 @app.delete('/api/restaurant_session')
 def restaurant_login_delete():
-    params = request.args
-    rest_token = params.get('rest_token')
-    rest_id = params.get('rest_id')
+    data = request.json
     
+    token = data.get('token')
+    check_token = run_query('SELECT token from restaurant_session WHERE token=?', [token])
+    response = check_token[0]
+    if response[0] == token:
+        run_query('DELETE FROM restaurant_session WHERE token=?', [token])
+    else:
+        return jsonify("ERROR, conditions to log out are not met, check token")
+    return jsonify("Log-out Successful")
