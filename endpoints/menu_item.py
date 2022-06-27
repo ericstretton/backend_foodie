@@ -43,7 +43,7 @@ def menu_item_get():
 @app.post('/api/menu_item')
 def menu_item_post():
     
-    # TODO: include description and image_url as optional keys
+    # TODO: adjust to similar format as client_post
     data = request.json
     token = data.get('token')
     
@@ -106,6 +106,7 @@ def menu_item_patch():
             
             if response == menu_id_int:
                 
+                # TODO: add allowed keys
                 update_item = new_dictionary_request(data)
                 
                 if 'name' in update_item:
@@ -136,7 +137,7 @@ def menu_item_patch():
                 
                 # return the response for the updated menu information along with the below success code
                 
-                return jsonify("order updated"), 200
+                return jsonify("menu_item updated"), 200
             else:
                 return jsonify("ERROR, menu item needs to be specified, check menu_id")
         else:

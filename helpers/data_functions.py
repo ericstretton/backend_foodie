@@ -3,12 +3,48 @@ import re
 def client_dictionary_query(data):
     client = {
         "client_id" : data[0],
-        "email" : data[1],
-        "username" : data[2],
+        "created_at" : data[1],
+        "email" : data[2],
+        "username" : data[3],
         "firstName" : data[4],
         "lastName" : data[5],
-        "picture_url" : data[6],
-        "created_at" : data[3]
+        "picture_url" : data[6]
+        
+    }
+    return client
+
+def client_dictionary_query_min(data):
+    client = {
+        "client_id" : data[0],
+        "created_at" : data[1],
+        "email" : data[2],
+        "username" : data[3],
+        "firstName" : data[4]
+        
+    }
+    return client
+
+def client_dictionary_query_lastName(data):
+    client = {
+        "client_id" : data[0],
+        "created_at" : data[1],
+        "email" : data[2],
+        "username" : data[3],
+        "firstName" : data[4],
+        "lastName" : data[5]
+        
+    }
+    return client
+
+def client_dictionary_query_pictureURL(data):
+    client = {
+        "client_id" : data[0],
+        "created_at" : data[1],
+        "email" : data[2],
+        "username" : data[3],
+        "firstName" : data[4],
+        "picture_url" : data[5]
+        
     }
     return client
 
