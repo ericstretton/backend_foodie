@@ -141,8 +141,10 @@ def restaurant_patch():
             # TODO: allow for only select updates to the information AND check for accepted keys
             # TODO: error handling
             
+    params = request.args
     data = request.json
-    token = data.get('token')
+    token = params.get('token')
+    
     
     if token != None:
         token_valid = run_query('SELECT token FROM restaurant_session WHERE token=?', [token])

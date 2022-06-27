@@ -38,6 +38,7 @@ def client_post():
                 {'email', 'username', 'password', 'firstName', 'picture_url'} or \
                     {'email', 'username', 'password', 'firstName', 'lastName', 'picture_url'}:
             new_client = new_dictionary_request(data)
+            
         else:
             return jsonify('Incorrect keys submitted'), 400
     else:
@@ -113,11 +114,12 @@ def client_patch():
         
         
         if response == token:
-            allowed_keys= {"token", "email", "username", "firstName", "lastName", "picture_url"}
+            allowed_keys= {"token", "email", "username", "password", "firstName", "lastName", "picture_url"}
             
             allowed_data_keys(data, allowed_keys)
             
             update_client =  new_dictionary_request(data)
+            
             
             if 'email' in update_client:
                 if not check_length(update_client['email'], 1, 75):
@@ -146,12 +148,12 @@ def client_patch():
                 
             if 'lastName' in update_client:
                 if not check_length(update_client['lastName'], 1, 50):
-                     return Response('Invalid length, lastName must be between 1 and 50 characters')
+                    return Response('Invalid length, lastName must be between 1 and 50 characters')
                 run_query('UPDATE client INNER JOIN client_session ON client.id=client_session.client_id SET client.lastName=? WHERE client_session.token=?', [update_client['lastName'], token])
                 
             if 'picture_url' in update_client:
                 if not check_length(update_client['picture_url'], 1, 300):
-                     return Response('Invalid length, picture_url must be between 1 and 300 characters')
+                    return Response('Invalid length, picture_url must be between 1 and 300 characters')
                 run_query('UPDATE client INNER JOIN client_session ON client.id=client_session.client_id SET client.picture_url=? WHERE client_session.token=?', [update_client['picture_url'], token])
             
             # GET THE UPDATED client information

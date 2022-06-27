@@ -17,9 +17,10 @@ def update_client_dictionary(data):
         
         "email" : data[1],
         "username" : data[2],
-        "firstName" : data[3],
-        "lastName" : data[4],
-        "picture_url" : data[5]
+        "password" : data[3],
+        "firstName" : data[4],
+        "lastName" : data[5],
+        "picture_url" : data[6]
     }
     return client
 
@@ -37,7 +38,8 @@ def restaurant_dictionary_query(data):
     }
     return restaurant
 
-# TODO add functions for menu items, orders and log in authorization
+# TODO add functions for orders 
+# TODO add functions for authorization? 
 
 
 def menu_item_dictionary(data):
@@ -67,7 +69,7 @@ def check_length(input, min_len, max_len):
 def allowed_data_keys(data, allowed_keys):
     
     for key in list(data.keys()):
-        if key not in allowed_data_keys:
+        if key not in allowed_keys:
             del data[key]
     return data
 
