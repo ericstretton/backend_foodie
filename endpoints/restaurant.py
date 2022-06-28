@@ -124,7 +124,7 @@ def restaurant_post():
             return jsonify('ERROR, email already exists'), 400
         
     restaurant_id = run_query('SELECT id FROM restaurant WHERE email=?', [new_restaurant['email']])
-    
+    return jsonify(restaurant_id)
     response = restaurant_id[0]
     
     check_response = response[0]
@@ -147,30 +147,76 @@ def restaurant_patch():
     
     
     if token != None:
-        token_valid = run_query('SELECT token FROM restaurant_session WHERE token=?', [token])
+        token_valid = run_query('SELECT token, restaurant_id FROM restaurant_session WHERE token=?', [token])
         token_valid_response = token_valid[0]
         response = token_valid_response[0]
+        rest_id = token_valid_response[1]
         
-
         if response == token:
-            update_restaurant = new_dictionary_request(data)
             
-            if 'email' in update_restaurant:
-                if not check_length(update_restaurant['email'], 1, 75):
-                    return jsonify('Invalid length, email must be between 1 and 75 characters')
-                if not check_email(update_restaurant['email']):
-                    return jsonify("Error, Not a valid email"), 400
+            allowed_keys = {"token", "address", "banner_url", "bio", "city", "email", "phoneNum", "profile_url"}
+            
+            if allowed_data_keys(data, allowed_keys):
+                update_restaurant = new_dictionary_request(data)
+            
+                if 'email' in update_restaurant:
+                    if not check_length(update_restaurant['email'], 1, 75):
+                        return jsonify('Invalid length, email must be between 1 and 75 characters')
+                    if not check_email(update_restaurant['email']):
+                        return jsonify("Error, Not a valid email"), 400
+                    
+                    email_exists = run_query('SELECT email FROM restaurant WHERE email=?', [update_restaurant['email']])
+                    if email_exists != []:
+                        return jsonify('Email already exists'), 400
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.email=? WHERE restaurant_session.token=?', [update_restaurant['email'], token])
+                    
+                if 'address' in update_restaurant:
+                    if not check_length(update_restaurant['address'], 1, 75):
+                        return jsonify('Invalid length, address must be between 1 and 75 characters')
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.address=? WHERE restaurant_session.token=?', [update_restaurant['address'], token])
                 
-                email_exists = run_query('SELECT email FROM restaurant WHERE email=?', [update_restaurant['email']])
-                if email_exists != []:
-                    return jsonify('Email already exists'), 400
-                run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.email=? WHERE restaurant_session.token=?', [update_restaurant['email'], response])
-                return jsonify(email_exists)
-    # else:
-    #     token = run_query('SELECT token FROM restaurant_session WHERE token=?)', [token])
-    #     if token != rest_token:
-    #         return Response('ERROR, Token not found in database')
-    #     else:
-    #         update_restaurant_info = run_query('PATCH address, email, phoneNum, bio, profile_url, banner_url FROM restaurant WHERE id=?', [rest_id])
-    #         updated_info = restaurant_dictionary_query(update_restaurant_info)
+                
+                if 'banner_url' in update_restaurant:
+                    if not check_length(update_restaurant['banner_url'], 1, 300):
+                        return jsonify('Invalid length, banner_url must be between 1 and 300 characters')
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.banner_url=? WHERE restaurant_session.token=?', [update_restaurant['banner_url'], token])
+                    
+                if 'bio' in update_restaurant:
+                    if not check_length(update_restaurant['bio'], 1, 200):
+                        return jsonify('Invalid length, phoneNum must be between 1 and 200 characters')
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.bio=? WHERE restaurant_session.token=?', [update_restaurant['bio'], token])
+                        
+                if 'city' in update_restaurant:
+                    city_check = run_query('SELECT name, id FROM city WHERE name=?', [update_restaurant["city"]])
+                    
+                    
+                    city_name_check = city_check[0]
+                    city_name_response = city_name_check[0]
+                    city_id = city_name_check[1]
+                    if update_restaurant['city'] != city_name_response:
+                        
+                        return jsonify('Error valid city has not been selected.'), 422
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.city=? WHERE restaurant_session.token=?', [city_id, token])
+                    
+                    
+                if 'phoneNum' in update_restaurant:
+                    if not check_length(update_restaurant['phoneNum'], 1, 25):
+                        return jsonify('Invalid length, phoneNum must be between 1 and 25 characters')
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.phoneNum=? WHERE restaurant_session.token=?', [update_restaurant['phoneNum'], token])
+                    
+                    
+                if 'profile_url' in update_restaurant:
+                    if not check_length(update_restaurant['profile_url'], 1, 300):
+                        return jsonify('Invalid length, phoneNum must be between 1 and 300 characters')
+                    run_query('UPDATE restaurant INNER JOIN restaurant_session ON restaurant.id=restaurant_session.restaurant_id SET restaurant.profile_url=? WHERE restaurant_session.token=?', [update_restaurant['profile_url'], token])
+                    
+                return jsonify("Restaurant information updated"), 200
+            
+            else:
+                return jsonify("ERROR, incorrect key values submitted"), 400
+        else:
+            return jsonify('Invalid session token', status=400)
+    else:
+        return jsonify("ERROR, a valid session token is needed")
+    
             

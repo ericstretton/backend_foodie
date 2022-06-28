@@ -416,7 +416,7 @@ def client_patch():
             else:
                 return jsonify('ERROR incorrect key values submitted')
         else:
-            return Response('Invalid session token', status=400)
+            return jsonify('Invalid session token'), 400
     else:
         return Response('A valid session token is needed')
     
