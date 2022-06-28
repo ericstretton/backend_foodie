@@ -1,7 +1,7 @@
-import enum
+
 from app import app
-from flask import jsonify, request, Response
-from helpers.data_functions import new_dictionary_request, req_menu_items
+from flask import jsonify, request
+from helpers.data_functions import new_dictionary_request, order_dictionary_query, req_menu_items
 from helpers.db_helpers import  run_query, order_query
 
 @app.get('/api/orders')
@@ -10,8 +10,84 @@ def orders_get():
     # WHAT is needed for request - has to be seen for either restaurant or client
     # parameter for token -- get the restaurant or client id from the token
     # If order id is given show only that order
-    return
     
+    params = request.args
+    
+    if len(params.keys()) >= 1 and len(params.keys()) <= 2:
+    
+        if len(params.keys()) == 1:
+            token = params.get('token')
+            
+            client_validity = run_query('SELECT token, client_id FROM client_session WHERE token=?', [token])
+            
+            restaurant_validity = run_query('SELECT token, restaurant_id FROM restaurant_session WHERE token=?', [token])
+            
+            if client_validity != []:
+                client_validity_response = client_validity[0]
+                if client_validity_response[0] == token:
+                    client_id = client_validity_response[1]
+                    
+                    all_user_orders = run_query('SELECT * FROM orders WHERE client_id=?', [client_id])
+                    
+                    all_orders = []
+                    for item in all_user_orders:
+                        order = order_dictionary_query(item)
+                        all_orders.append(order)
+                    return jsonify(all_orders)
+            
+            if restaurant_validity != []:
+                restaurant_validity_response = restaurant_validity[0]
+                if restaurant_validity_response[0] == token:
+                    restaurant_id = restaurant_validity_response[1]
+                    
+                    all_rest_orders = run_query('SELECT * FROM orders WHERE restaurant_id=?', [restaurant_id])
+                    
+                    all_orders = []
+                    for item in all_rest_orders:
+                        order = order_dictionary_query(item)
+                        all_orders.append(order)
+                    return jsonify(all_orders)
+                
+        if len(params.keys()) == 2:
+            
+            token = params.get('token')
+            order_id = params.get('order_id')
+            
+            client_validity = run_query('SELECT token, client_id FROM client_session WHERE token=?', [token])
+            
+            restaurant_validity = run_query('SELECT token, restaurant_id FROM restaurant_session WHERE token=?', [token])
+            
+            if client_validity != []:
+                client_validity_response = client_validity[0]
+                if client_validity_response[0] == token:
+                    client_id = client_validity_response[1]
+
+                    specific_order = run_query('SELECT * FROM orders WHERE client_id=? AND id=?', [client_id, order_id])
+                    
+                    order_info = []
+                    for item in specific_order:
+                        order = order_dictionary_query(item)
+                        order_info.append(order)
+                    return jsonify(order_info)
+                    
+                    
+            if restaurant_validity != []:
+                restaurant_validity_response = restaurant_validity[0]
+                if restaurant_validity_response[0] == token:
+                    
+                    restaurant_id = restaurant_validity_response[1]
+                    specific_order = run_query('SELECT * FROM orders WHERE restaurant_id=? AND id=?', [restaurant_id, order_id])
+                    
+                    order_info = []
+                    for item in specific_order:
+                        order = order_dictionary_query(item)
+                        order_info.append(order)
+                    return jsonify(order_info)
+                
+        else:
+            return jsonify('Incorrect keys submitted'), 400
+    else:
+        return jsonify('Error, invalid amount of data submitted'), 400
     
 @app.post('/api/orders')
 def orders_post():
@@ -32,97 +108,101 @@ def orders_post():
             client_id = token_valid_response[1]
             response = token_valid_response[0]
             
-        if response == token:
-            order_length = len(items)
-            
-            order_id = order_query('INSERT INTO orders (client_id, restaurant_id) VALUES (?,?)',[client_id, rest_id])
-
-            
-            
-            if len(items) == 1:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+            if response == token:
                 
-            elif len(items) == 2:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                order_id = order_query('INSERT INTO orders (client_id, restaurant_id) VALUES (?,?)',[client_id, rest_id])
                 
-            elif len(items) == 3:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-            elif len(items) == 4:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-            elif len(items) == 5:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-            elif len(items) == 6:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
-            elif len(items) == 7:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
-            elif len(items) == 8:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
-            elif len(items) == 9:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[8], order_id])
-            elif len(items) == 10:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[8], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[9], order_id])
-            elif len(items) == 11:
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[8], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[9], order_id])
-                run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[10], order_id])
+                
+                
+                if len(items) == 1:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    
+                elif len(items) == 2:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    
+                elif len(items) == 3:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                elif len(items) == 4:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                elif len(items) == 5:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                elif len(items) == 6:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
+                elif len(items) == 7:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
+                elif len(items) == 8:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
+                elif len(items) == 9:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[8], order_id])
+                elif len(items) == 10:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[8], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[9], order_id])
+                elif len(items) == 11:
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[0], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[1], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[2], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[3], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[4], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[5], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[6], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[7], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[8], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[9], order_id])
+                    run_query('INSERT INTO order_menu_item (menu_id, order_id) VALUES (?,?)', [items[10], order_id])
+                
+                return jsonify("Order Created"), 201
             
-            return jsonify("Order Created"), 201
+            else:
+                return jsonify('ERROR, submitted token is not a valid client_session token'), 401
+        else:
+            return jsonify('ERROR, a client_session token is required to request an order'), 401
         
     else:
-        return jsonify('Incorrect keys submitted'), 400
+        return jsonify('Incorrect keys submitted'), 422
     
 @app.patch('/api/orders')
 def orders_patch():

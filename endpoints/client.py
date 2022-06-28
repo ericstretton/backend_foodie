@@ -26,7 +26,7 @@ def client_get():
         resp_list.append(resp)
         return jsonify(resp)
     else:
-        return Response('Error token does not exist', status=400)
+        return jsonify('Error token does not exist'), 400
     
 @app.post('/api/client')
 def client_post():
