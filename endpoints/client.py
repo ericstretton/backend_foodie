@@ -1,7 +1,7 @@
 
 from app import app
 from flask import jsonify, request, Response
-from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email, new_dictionary_request, update_client_dictionary, client_dictionary_query_min, client_dictionary_query_lastName, client_dictionary_query_pictureURL
+from helpers.data_functions import allowed_data_keys, check_length, client_dictionary_query, check_email, new_dictionary_request, client_dictionary_query_min,  client_dictionary_query_pictureURL
 from helpers.db_helpers import run_query
 import bcrypt
 from uuid import uuid4
@@ -10,8 +10,7 @@ from uuid import uuid4
 @app.get('/api/client')
 def client_get():
     # Only applicable to single user id with an equivalent accessible token
-    # TODO: error handling
-    # TODO: comment code
+    
     
     params = request.args
     token = params.get('token')
@@ -19,6 +18,8 @@ def client_get():
         return jsonify('Missing required argument: token', 'You must be logged in to access client information' ),422
     check_token = run_query('SELECT client_session.token FROM client_session INNER JOIN client ON client.id=client_session.client_id WHERE client_session.token=?', [token])
     check = check_token[0]
+    
+    #Check submitted token with stored user_information to qualify login
     if check[0] == token:
         user_info = run_query('SELECT client_session.client_id, client.email, client.username, client.created_at, client.firstName, client.lastName, client.picture_url  FROM client INNER JOIN client_session ON client.id=client_session.client_id WHERE client_session.token=?', [token])
         resp = client_dictionary_query(user_info[0])
@@ -30,18 +31,16 @@ def client_get():
     
 @app.post('/api/client')
 def client_post():
-                        # TODO error handling 
-                        # TODO comment code
                         
     data = request.json
-    
+    # Keys Required, email, username, password, firstName
     if len(data.keys()) >= 4 and len(data.keys()) <= 6:
         if {'email', 'username', 'password', 'firstName'} == data.keys():
             new_client = new_dictionary_request(data)
 
             if 'email' in new_client:
                 
-                
+                    #Apply checks on email to qualify if able to post
                     if not check_email(new_client['email']):
                         return jsonify("Error invalid email address submitted"), 400
                     if not check_length(new_client['email'], 5, 75):
@@ -55,7 +54,8 @@ def client_post():
                         email_validity = check_email_validity[0]
                         if email_validity[0] == new_client['email']:
                             return jsonify('ERROR, email already exists'), 400
-        
+                        
+            #Apply checks on username to qualify if able to post    
             if 'username' in new_client:
                 
                 if not check_length(new_client['username'], 1, 50):
@@ -70,7 +70,7 @@ def client_post():
                         return jsonify('username already exists', 400)
                 
             if 'password' in new_client:
-            
+                #Apply checks on password to qualify if able to post
                 if not check_length(new_client['password'], 6, 200):
                     return jsonify('')
                 
@@ -90,10 +90,8 @@ def client_post():
                 
                 
             client_id = run_query('SELECT id FROM client WHERE email=?', [new_client['email']])
-            
             response = client_id[0]
             check_response = response[0]
-            
             token = str(uuid4())
                 
             run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
@@ -106,13 +104,13 @@ def client_post():
             
             return jsonify('Client Created,', resp), 201
         
-        
+        # Keys Required, email, username, password, firstName, lastName
         elif {'email', 'username', 'password', 'firstName', 'lastName'} == data.keys(): 
             new_client = new_dictionary_request(data)
             
             if 'email' in new_client:
                 
-                
+                    #Apply checks on email to qualify if able to post
                     if not check_email(new_client['email']):
                         return jsonify("Error invalid email address submitted"), 400
                     if not check_length(new_client['email'], 5, 75):
@@ -127,8 +125,9 @@ def client_post():
                         if email_validity[0] == new_client['email']:
                             return jsonify('ERROR, email already exists'), 400
         
+        
             if 'username' in new_client:
-                
+                #Apply checks on username to qualify if able to post
                 if not check_length(new_client['username'], 1, 50):
                     return jsonify('ERROR, username must be between 1 and 50 characters'), 400
                 
@@ -140,6 +139,7 @@ def client_post():
                     if response == new_client['username']:
                         return jsonify('username already exists', 400)
                     
+                    
             if 'password' in new_client:
                 
                 if not check_length(new_client['password'], 6, 200):
@@ -148,8 +148,7 @@ def client_post():
                 password = str(new_client['password'])
                 salt = bcrypt.gensalt()
                 hashed_password = bcrypt.hashpw(password.encode(), salt)
-                    
-                    
+                
                     
             if 'firstName' in new_client:
                 if not new_client['firstName']:
@@ -165,25 +164,17 @@ def client_post():
             
             run_query("INSERT INTO client (email, username, password, firstName, lastName) VALUES(?,?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName'], new_client['lastName']])
             
-                
-                
             client_id = run_query('SELECT id FROM client WHERE email=?', [new_client['email']])
-            
             response = client_id[0]
             check_response = response[0]
-            
             token = str(uuid4())
                 
             run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
-            
-            # client = run_query('SELECT id, created_at, email, username, firstName, lastName FROM client WHERE id=?', [check_response])
-            # client_response = client[0]
-            
-            # resp = client_dictionary_query_lastName(client_response)
             resp['token'] = token
-            
             return jsonify('Client Created,', resp), 201
         
+        
+        # Keys Required, email, username, password, firstName, picture_url
         elif {'email', 'username', 'password', 'firstName', 'picture_url'} == data.keys():
             new_client = new_dictionary_request(data)
             
@@ -259,7 +250,7 @@ def client_post():
             return jsonify('Client Created,', resp), 201
             
             
-                    
+        # Keys Required, email, username, password, firstName, lastName, picture_url
         elif {'email', 'username', 'password', 'firstName', 'lastName', 'picture_url'} == data.keys():
             new_client = new_dictionary_request(data)
             
@@ -414,11 +405,11 @@ def client_patch():
                 return jsonify("Client information updated"), 200
             
             else:
-                return jsonify('ERROR incorrect key values submitted')
+                return jsonify('ERROR incorrect key values submitted'), 400
         else:
             return jsonify('Invalid session token'), 400
     else:
-        return Response('A valid session token is needed')
+        return jsonify('A valid session token is needed'), 400
     
     
 @app.delete('/api/client')

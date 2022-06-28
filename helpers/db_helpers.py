@@ -31,11 +31,7 @@ def disconnect_db(conn, cursor):
         conn.rollback()
         conn.close()
     
-
-# TODO: error handle for client/restuarant endpoints
-# TODO: error handle for session endpoints
-# TODO: error handle for menu endpoint
-# TODO: error handle for orders endpoints
+# main db query 
 
 def run_query(statement, args=None):
     
@@ -87,7 +83,7 @@ def run_query(statement, args=None):
         disconnect_db(conn,cursor)
         
 
-
+# db query for order endpoint, else statement uses the lastrowid to get the most recent order for the client
 
         
 def order_query(statement, args=None):
@@ -109,8 +105,6 @@ def order_query(statement, args=None):
                 return order_id
             else:
                 print("Query to insert")
-        
-        
         
     except mariadb.OperationalError as e:
         print("Got an operational Error")

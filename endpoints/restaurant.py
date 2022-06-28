@@ -7,16 +7,15 @@ from helpers.data_functions import *
 
 @app.get('/api/restaurant')
 def restaurant_get():
-    # TODO: Refine error handling
     
     params = request.args
     rest_id = params.get('id')
     
     if len(params.keys()) == 0:
-        all_restaurants = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city')
+        all_restaurants = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.name,  city.name, restaurant.email, restaurant.phoneNum, restaurant.bio, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city')
         all_restaurants_list = []
         for rest in all_restaurants:
-            restaurant = restaurant_dictionary_query(rest)
+            restaurant = restaurant_get_dict(rest)
             all_restaurants_list.append(restaurant)
         return jsonify('get_all request success', all_restaurants_list)
     
@@ -28,8 +27,8 @@ def restaurant_get():
         
         if response[0] == 1:
             
-            restaurant_info = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.bio, city.name, restaurant.email, restaurant.phoneNum, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city WHERE restaurant.id=?', [rest_id])
-            resp = restaurant_dictionary_query(restaurant_info[0])
+            restaurant_info = run_query('SELECT restaurant.id, restaurant.address, restaurant.banner_url, restaurant.name,  city.name, restaurant.email, restaurant.phoneNum, restaurant.bio, restaurant.profile_url FROM restaurant INNER JOIN city ON city.id=restaurant.city WHERE restaurant.id=?', [rest_id])
+            resp = restaurant_get_dict(restaurant_info[0])
             resp_list = []
             resp_list.append(resp)
             
@@ -41,8 +40,6 @@ def restaurant_get():
     
 @app.post('/api/restaurant')
 def restaurant_post():
-        
-        # TODO: error handling
 
     data = request.json
     
@@ -802,8 +799,8 @@ def restaurant_patch():
             else:
                 return jsonify("ERROR, incorrect key values submitted"), 400
         else:
-            return jsonify('Invalid session token', status=400)
+            return jsonify('Invalid session token'), 400
     else:
-        return jsonify("ERROR, a valid session token is needed")
+        return jsonify("ERROR, a valid session token is needed"), 400
     
             
