@@ -62,9 +62,8 @@ def run_query(statement, args=None):
         print(e.msg)
     
     except mariadb.IntegrityError as e:
-        if("CONSTRAINT `users_CHECK_age`" in e.msg):
-            print("User is outside of acceptable age range")
-        elif("Duplicate entry" in e.msg):
+        
+        if("Duplicate entry" in e.msg):
             print("User already exists")
         else:
             print(e.msg)
@@ -89,3 +88,58 @@ def run_query(statement, args=None):
         
 
 
+
+        
+def order_query(statement, args=None):
+    
+    try:
+        (conn, cursor) = connect_db()
+        if statement.startswith("SELECT"):
+            cursor.execute(statement, args)
+            result = cursor.fetchall()
+            print("Total of {} users".format(cursor.rowcount))
+            return result
+        else:
+            cursor.execute(statement, args)
+            if cursor.rowcount == 1:
+                order_id = cursor.lastrowid
+                conn.commit()
+                print("Query successful", order_id)
+                
+                return order_id
+            else:
+                print("Query to insert")
+        
+        
+        
+    except mariadb.OperationalError as e:
+        print("Got an operational Error")
+        if("Access denied" in e.msg):
+            print("Failed to log-in")
+        print(e.msg)
+    
+    except mariadb.IntegrityError as e:
+        if("CONSTRAINT `users_CHECK_age`" in e.msg):
+            print("User is outside of acceptable age range")
+        elif("Duplicate entry" in e.msg):
+            print("User already exists")
+        else:
+            print(e.msg)
+    
+    except mariadb.ProgrammingError as e:
+        if("SQL syntax" in e.msg):
+            print("SQL syntax error, check formating")
+        else:
+            print("Got a different programming error")
+        print(e.msg)
+
+    except RuntimeError as e:
+        print("Caught a runtime error")
+        e.__traceback__
+
+    except Exception as e:
+        print(e.with_traceback)
+
+        print(e.msg)
+    finally:
+        disconnect_db(conn,cursor)

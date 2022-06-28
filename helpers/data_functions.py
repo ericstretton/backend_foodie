@@ -77,6 +77,17 @@ def restaurant_dictionary_query(data):
     return restaurant
 
 # TODO add functions for orders 
+def order_dictionary_query(data):
+    order = {
+        "order_id" : data[0],
+        "created_at" : data[1],
+        "is_confirmed" : data[2],
+        "is_complete" : data[3],
+        "is_cancelled" : data[4],
+        "client_id" : data[5],
+        "restaurant_id" : data[6]
+    }
+    return order
 # TODO add functions for authorization? 
 
 
@@ -116,3 +127,9 @@ def new_dictionary_request(data):
     for k,v in data.items():
         new_dict[k] = str(v).strip()
     return new_dict
+
+def req_menu_items(data):
+    menu_items_list ={
+        "menu_id" : data
+    }
+    return menu_items_list
