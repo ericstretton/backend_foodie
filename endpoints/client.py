@@ -85,7 +85,7 @@ def client_post():
                         return jsonify('ERROR, lastName must be between 1 and 50 characters')
                     
                     
-            run_query("INSERT INTO client (email, username, password, firstName) VALUE(?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName']])
+            run_query("INSERT INTO client (email, username, password, firstName) VALUES(?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName']])
             
                 
                 
@@ -163,7 +163,7 @@ def client_post():
                     return jsonify('ERROR, lastName must be between 1 and 50 characters')
                 
             
-            run_query("INSERT INTO client (email, username, password, firstName, lastName) VALUE(?,?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName'], new_client['lastName']])
+            run_query("INSERT INTO client (email, username, password, firstName, lastName) VALUES(?,?,?,?,?)", [new_client['email'], new_client['username'], hashed_password, new_client['firstName'], new_client['lastName']])
             
                 
                 
@@ -176,10 +176,10 @@ def client_post():
                 
             run_query("INSERT INTO client_session (token, client_id) VALUES (?,?)", [token, check_response])    
             
-            client = run_query('SELECT id, created_at, email, username, firstName, lastName FROM client WHERE id=?', [check_response])
-            client_response = client[0]
+            # client = run_query('SELECT id, created_at, email, username, firstName, lastName FROM client WHERE id=?', [check_response])
+            # client_response = client[0]
             
-            resp = client_dictionary_query_lastName(client_response)
+            # resp = client_dictionary_query_lastName(client_response)
             resp['token'] = token
             
             return jsonify('Client Created,', resp), 201

@@ -1,6 +1,6 @@
-import json
+
 from app import app
-from flask import jsonify, request, Response
+from flask import jsonify, request
 from helpers.db_helpers import run_query
 from uuid import uuid4
 

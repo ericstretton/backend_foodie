@@ -63,13 +63,15 @@ def update_client_dictionary(data):
 def restaurant_dictionary_query(data):
     restaurant = {
         "restaurant_id" : data[0],
-        "address" : data[1],
-        "banner_url" : data[2],
-        "bio" : data[3],
-        "city" : data[4],
-        "email" : data[5],
-        "phoneNum" : data[6],
-        "profile_url" : data[7]
+        "email" : data[1],
+        "password" : data[2],
+        "name" : data[3],
+        "address" : data[4],
+        "phoneNum" : data[5],
+        "city" : data[6],
+        "bio" : data[7],
+        "profile_url" : data[8],
+        "banner_url" : data[9]
         
     }
     return restaurant
