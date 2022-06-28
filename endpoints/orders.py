@@ -1,7 +1,7 @@
 
 from app import app
 from flask import jsonify, request
-from helpers.data_functions import new_dictionary_request, order_dictionary_query, req_menu_items
+from helpers.data_functions import new_dictionary_request, order_dictionary_query, req_menu_items, user_update_order
 from helpers.db_helpers import  run_query, order_query
 
 @app.get('/api/orders')
@@ -210,5 +210,63 @@ def orders_patch():
     # parameter for token -- get the restaurant or client id from the token
     # If client is using, options are cancelOrder
     # If restaurant is using, options are confirmOrder or completeOrder
-    return
+    
+    params = request.args
+    data = request.json
+    if len(params.keys()) == 2:
+        token = params.get('token')
+            
+        client_validity = run_query('SELECT token, client_id FROM client_session WHERE token=?', [token])
+        
+        restaurant_validity = run_query('SELECT token, restaurant_id FROM restaurant_session WHERE token=?', [token])
+        
+        if client_validity != []:
+            client_validity_response = client_validity[0]
+            if client_validity_response[0] == token:
+                client_id = client_validity_response[1]
+                order_id = params.get('order_id')
+                order_id_int = int(order_id)
+                
+                order_verification = run_query('SELECT id FROM orders WHERE client_id=? AND id=?', [client_id, order_id_int])
+                
+                order_verification_response = order_verification[0]
+                
+                if order_verification_response[0] == order_id_int:
+                    is_cancelled = data.get('is_cancelled')
+                    if is_cancelled == "True":
+                        cancel_order = 1
+                        run_query('UPDATE orders SET is_cancelled=? WHERE order_id=?', [cancel_order, order_id])
+                        return jsonify('Order Cancelled')
+                    
+        if restaurant_validity != []:
+            restaurant_validity_response = restaurant_validity[0]
+            if restaurant_validity_response[0] == token:
+                rest_id = restaurant_validity_response[1]
+                order_id = params.get('order_id')
+                order_id_int = int(order_id)
+                
+                order_verification = run_query('SELECT id FROM orders WHERE restaurant_id=? AND id=?', [rest_id, order_id_int])
+                order_verification_response = order_verification[0]
+                if order_verification_response[0] == order_id_int:
+                    is_confirmed = data.get('is_confirmed')
+                    
+                    if is_confirmed != None:
+                        if is_confirmed == "True":
+                            confirm_order = 1
+                            
+                            run_query('UPDATE orders SET is_confirmed=? WHERE id=?', [confirm_order, order_id_int])
+                            return jsonify('Order Confirmed')
+                    
+                    is_complete = data.get('is_complete')
+                    
+                    if is_complete != None:
+                        if is_complete == "True":
+                            is_confirmed = 0
+                            complete_order = 1
+                            run_query('UPDATE orders SET is_confirmed=? WHERE id=?', [is_confirmed, order_id_int])
+                            run_query('UPDATE orders SET is_complete=? WHERE id=?', [complete_order, order_id_int])
+                            return jsonify('Order has been completed')
+                    
+    else:
+        return jsonify('ERROR')
     

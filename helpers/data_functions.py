@@ -88,7 +88,12 @@ def order_dictionary_query(data):
         "restaurant_id" : data[6]
     }
     return order
-# TODO add functions for authorization? 
+
+def user_update_order(data):
+    order = {
+        "is_cancelled" : data
+    }
+    return order
 
 
 def menu_item_dictionary(data):
